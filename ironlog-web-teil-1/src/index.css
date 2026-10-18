@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0a0a;
+  --lime: #c6ff00;
+  --blaze: #ff5f1f;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: #f5f5f5;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+body {
+  font-family: 'Inter Variable', Inter, system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+/* Film grain over everything (pointer-events off) */
+body::after {
+  content: '';
+  position: fixed;
+  inset: -50%;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 1.2s steps(6) infinite;
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3%, 2%); }
+  40% { transform: translate(2%, -3%); }
+  60% { transform: translate(-1%, 3%); }
+  80% { transform: translate(3%, 1%); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; }
+}
+
+/* Ambient glow behind the app */
+.ambient {
+  background:
+    radial-gradient(60% 40% at 85% -5%, rgba(198, 255, 0, 0.09), transparent 70%),
+    radial-gradient(50% 35% at -10% 30%, rgba(255, 95, 31, 0.06), transparent 70%);
+}
+
+/* Splash screen (before React mounts) */
+#splash {
+  position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 22px; background: #0a0a0a;
+  transition: opacity .5s ease, visibility .5s;
+}
+#splash.hide { opacity: 0; visibility: hidden; }
+.splash-logo {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-size: 64px; letter-spacing: .06em; color: #fff;
+}
+.splash-logo span { color: var(--lime); text-shadow: 0 0 30px rgba(198, 255, 0, .6); }
+.splash-bar { width: 120px; height: 3px; border-radius: 9px; background: #1c1c1c; overflow: hidden; position: relative; }
+.splash-bar::after {
+  content: ''; position: absolute; inset: 0; width: 40%; background: var(--lime);
+  box-shadow: 0 0 12px var(--lime); animation: splashbar 1s ease-in-out infinite;
+}
+@keyframes splashbar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+
+@layer components {
+  .h-display {
+    @apply font-display uppercase tracking-[0.02em] leading-[0.9];
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+    @apply font-extrabold tracking-tight;
+  }
+  .card {
+    @apply rounded-2xl border border-border bg-ink-800 shadow-card;
+  }
+  .glass {
+    @apply border border-white/10 bg-ink-900/60 backdrop-blur-xl backdrop-saturate-150;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white/70;
+  }
+  .label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type='number'] { -moz-appearance: textfield; }
+
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+
+/* Recharts tweaks */
+.recharts-cartesian-grid line { stroke: rgba(255, 255, 255, 0.06); }
+.recharts-text { fill: rgba(255, 255, 255, 0.45); font-size: 11px; }
+.recharts-tooltip-cursor { fill: rgba(255, 255, 255, 0.04); }
+
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+/* nutzt die eigenständige `translate`-Property, damit Tailwinds transform-Zentrierung erhalten bleibt */
+@keyframes sheetin { from { opacity: 0; translate: 0 48px; } to { opacity: 1; translate: 0 0; } }
