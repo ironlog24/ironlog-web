@@ -14,7 +14,7 @@ Sprache mit dem Nutzer: **Deutsch**, einfache Schritt-für-Schritt-Anleitungen (
 - Backend: **Supabase** (Projekt `jjxwcmemkwchbdwszifo`, Region Frankfurt). Auth E-Mail/Passwort, alle Tabellen mit RLS `user_id = auth.uid()`.
   - Env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key, darf öffentlich sein).
   - Ohne Env-Variablen läuft die App im **Demo-Modus** (localStorage, Login ohne Prüfung).
-  - Migrationen: `ironlog-web-teil-1/supabase/migrations/0001…0005`. Der Nutzer führt neue SQL-Dateien selbst im Supabase SQL Editor aus → immer idempotent schreiben (`if not exists`, `drop policy if exists`) und am Ende `notify pgrst, 'reload schema';`. Neue Tabellen brauchen explizite `grant`s für `authenticated`.
+  - Migrationen: `ironlog-web-teil-1/supabase/migrations/0001…0006`. Der Nutzer führt neue SQL-Dateien selbst im Supabase SQL Editor aus → immer idempotent schreiben (`if not exists`, `drop policy if exists`) und am Ende `notify pgrst, 'reload schema';`. Neue Tabellen brauchen explizite `grant`s für `authenticated`.
 - Build-Modi: `npm run build` (normal, PWA). `vite build --mode artifact` erzeugt eine Single-File-HTML (MemoryRouter, ohne Service Worker).
 
 ## Deployment (wichtig)
@@ -34,6 +34,10 @@ Sprache mit dem Nutzer: **Deutsch**, einfache Schritt-für-Schritt-Anleitungen (
 - **Gewichtsvorschlag** (doppelte Progression) im Training.
 - **Buddys** (Version 1): Einladungscode/-link `/i/CODE`, Buddy-Karte auf Dashboard, Respekt 🔥, Wochen-Challenge (wechselt Konstanz/Steigerung), Duo-Streak, Story-Karten 1080×1920 mit QR (PR, Ergebnis, Streak, „Schlag mich“), Sichtbarkeit. Tabellen: `friendships`, `workout_summaries`, `reactions`; RPCs `accept_invite`, `my_buddies`, `invite_info`.
 - **Avatar** (`src/components/Avatar.tsx`): wächst mit Anzahl Trainings, Proportionen nach Muskelgruppen der letzten 6 Wochen, 15 Level, „Skip Leg Day 🍗“-Hinweis.
+  - **Avatar-Erstellung nach dem Login** (`AvatarOnboarding` in `App.tsx`): Typ, Körperbau, Hautton, Frisur, Haarfarbe, Bart. Gespeichert in `profiles.avatar` (jsonb) + localStorage.
+  - **Avatar-Fortschrittskarte im Recap** (`AvatarProgress` in `Recap.tsx`).
+  - Migration `0006_avatar.sql` (Spalte `profiles.avatar`).
+- **Neue Übungsfotos** mit wenig Grün (`src/assets/exercises`, gleiche Dateinamen).
 
 ## Ideen / offene Punkte
 - Buddys Version 2: Anstupsen per Push, Monats-Recap im „Wrapped“-Stil, animierte Karten, WhatsApp-Linkvorschau.

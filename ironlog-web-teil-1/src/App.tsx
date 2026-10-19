@@ -19,6 +19,7 @@ import Nutrition from '@/pages/Nutrition'
 import Settings from '@/pages/Settings'
 import Buddies from '@/pages/Buddies'
 import { SocialProvider } from '@/state/social'
+import { AvatarOnboarding } from '@/components/Avatar'
 import { Datenschutz, Impressum } from '@/pages/Legal'
 import { NewPasswordDialog } from '@/components/NewPasswordDialog'
 
@@ -73,6 +74,7 @@ function Routed() {
         </Routes>
       </AppShell>
       <RestTimer />
+      <AvatarOnboarding />
       </SocialProvider>
     </SessionProvider>
   )

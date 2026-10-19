@@ -16,6 +16,7 @@ import { useSocial } from '@/state/social'
 import { inviteUrl } from '@/data/social'
 import { siteUrl } from '@/data/api'
 import { ShareCardDialog } from '@/components/ShareCardDialog'
+import { AvatarProgress } from '@/components/Avatar'
 import type { CardSpec } from '@/lib/shareCards'
 
 export default function Recap() {
@@ -202,6 +203,8 @@ export default function Recap() {
             </div>
           </div>
         </motion.div>
+
+        <AvatarProgress workoutId={w.id} />
 
         <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
           <Button size="lg" onClick={share} disabled={sharing === 'busy'}>
