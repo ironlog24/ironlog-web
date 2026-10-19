@@ -5,7 +5,7 @@ Sprache mit dem Nutzer: **Deutsch**, einfache Schritt-für-Schritt-Anleitungen (
 
 ## Überblick
 - **IRONLOG**: Gym-Tracker als Web-App/PWA. Dunkles Design (#0A0A0A, Lime #C6FF00, Orange #FF5F1F, Bebas Neue + Inter), deutsche Oberfläche, kg.
-- Live: https://ironlog-youssef.netlify.app
+- Live: https://ironlog-youssef.pages.dev (Cloudflare Pages). Alte Adresse https://ironlog-youssef.netlify.app nur noch für alte Links.
 - Repo: `ironlog24/ironlog-web` (public). **App-Code liegt im Unterordner `ironlog-web-teil-1/`.**
 - Watch-Recorder (Swift, eigenes Repo `ironlog24/ironlog-recorder`, privat).
 
@@ -18,10 +18,12 @@ Sprache mit dem Nutzer: **Deutsch**, einfache Schritt-für-Schritt-Anleitungen (
 - Build-Modi: `npm run build` (normal, PWA). `vite build --mode artifact` erzeugt eine Single-File-HTML (MemoryRouter, ohne Service Worker).
 
 ## Deployment (wichtig)
-- **Netlify baut NICHT selbst** (Gratis-Tarif blockt Commits von „claude“ als „Unrecognized Git contributor“).
-- Stattdessen: **GitHub Action `.github/workflows/deploy.yml`** baut bei jedem Push auf `main` und lädt per `netlify-cli deploy --prod` hoch.
-  - Secrets: `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`. Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- Netlify-Guthaben ist knapp → Änderungen bündeln, nicht jede Kleinigkeit einzeln pushen.
+- Hosting: **Cloudflare Pages**, Adresse https://ironlog-youssef.pages.dev.
+- **Cloudflare baut bei jedem Push auf `main` selbst** – keine GitHub Action mehr.
+  - Einstellungen in Cloudflare: Root `ironlog-web-teil-1`, Build `npm run build`, Ausgabe `dist`.
+  - Env-Variablen (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) sind in Cloudflare gesetzt.
+  - Standard für `SITE_URL` in `src/data/api.ts` (Links in Bestätigungs-/Reset-Mails): https://ironlog-youssef.pages.dev, überschreibbar mit `VITE_SITE_URL`.
+- **Netlify** wird nicht mehr genutzt; https://ironlog-youssef.netlify.app bleibt nur als alte Adresse für alte Links.
 - Vor jedem Push: `cd ironlog-web-teil-1 && npm ci && npm run build` muss fehlerfrei laufen.
 
 ## Bereits gebaut

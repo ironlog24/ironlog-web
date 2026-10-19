@@ -333,7 +333,7 @@ export function siteUrl() {
   const o = typeof window !== 'undefined' ? window.location.origin : ''
   return /^https?:\/\//.test(o) && !/claude|anthropic|usercontent/.test(o) ? o : SITE_URL
 }
-const SITE_URL = (import.meta.env.VITE_SITE_URL as string | undefined) || 'https://ironlog-youssef.netlify.app'
+const SITE_URL = (import.meta.env.VITE_SITE_URL as string | undefined) || 'https://ironlog-youssef.pages.dev'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
