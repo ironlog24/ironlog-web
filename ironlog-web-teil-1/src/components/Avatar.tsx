@@ -126,27 +126,40 @@ export function useLook() {
   return { look, save, state }
 }
 
-/* ── Zeichnung ── */
+/* ── Zeichnung: 3D-Spielfigur (Chibi-Stil) ── */
 
 type P = [number, number]
-/** Geschlossener, weicher Pfad durch Punkte (Catmull-Rom → Bézier) – gleiche Punktzahl = animierbar */
-function smooth(pts: P[], closed = true, t = 0.5) {
+/** Weicher, geschlossener Pfad durch Punkte (Catmull-Rom → Bézier) – gleiche Punktzahl = animierbar */
+function smooth(pts: P[], t = 0.5) {
   const n = pts.length
-  const at = (i: number) => pts[closed ? (i + n) % n : Math.max(0, Math.min(n - 1, i))]
+  const at = (i: number) => pts[(i + n) % n]
   let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`
-  const last = closed ? n : n - 1
-  for (let i = 0; i < last; i++) {
+  for (let i = 0; i < n; i++) {
     const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2)
     const c1: P = [p1[0] + ((p2[0] - p0[0]) * t) / 3, p1[1] + ((p2[1] - p0[1]) * t) / 3]
     const c2: P = [p2[0] - ((p3[0] - p1[0]) * t) / 3, p2[1] - ((p3[1] - p1[1]) * t) / 3]
     d += ` C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`
   }
-  return closed ? d + ' Z' : d
+  return d + ' Z'
 }
 const mirror = (pts: P[]): P[] => pts.map(([x, y]) => [200 - x, y])
+const sym = (pts: P[]) => [...pts, ...mirror(pts).reverse()]
+const f1 = (n: number) => n.toFixed(1)
+/** Kapsel zwischen zwei Punkten mit zwei Radien (Arm/Bein-Segment) */
+function limb(x1: number, y1: number, r1: number, x2: number, y2: number, r2: number) {
+  const dx = x2 - x1, dy = y2 - y1
+  const L = Math.hypot(dx, dy) || 1
+  const ux = dx / L, uy = dy / L, nx = -uy, ny = ux, k = 1.33
+  const a1: P = [x1 + nx * r1, y1 + ny * r1], b1: P = [x1 - nx * r1, y1 - ny * r1]
+  const a2: P = [x2 + nx * r2, y2 + ny * r2], b2: P = [x2 - nx * r2, y2 - ny * r2]
+  return `M ${f1(a1[0])} ${f1(a1[1])} L ${f1(a2[0])} ${f1(a2[1])} C ${f1(a2[0] + ux * k * r2)} ${f1(a2[1] + uy * k * r2)} ${f1(b2[0] + ux * k * r2)} ${f1(b2[1] + uy * k * r2)} ${f1(b2[0])} ${f1(b2[1])} L ${f1(b1[0])} ${f1(b1[1])} C ${f1(b1[0] - ux * k * r1)} ${f1(b1[1] - uy * k * r1)} ${f1(a1[0] - ux * k * r1)} ${f1(a1[1] - uy * k * r1)} ${f1(a1[0])} ${f1(a1[1])} Z`
+}
 const shade = (hex: string, f: number) => {
   const n = parseInt(hex.slice(1), 16)
-  const c = (s: number) => Math.max(0, Math.min(255, Math.round(((n >> s) & 255) * f)))
+  const c = (s: number) => {
+    const v = (n >> s) & 255
+    return Math.max(0, Math.min(255, Math.round(f >= 1 ? v + (255 - v) * (f - 1) : v * f)))
+  }
   return `rgb(${c(16)},${c(8)},${c(0)})`
 }
 
@@ -159,183 +172,271 @@ const BUILD = {
   kraeftig: { m: 0.12, fat: 1 },
 } as const
 
+let figCount = 0
+
 export function AvatarFigure({ sizes, look = DEFAULT_LOOK, className }: { sizes: Sizes; look?: Look; className?: string }) {
+  const [uid] = useState(() => `av${++figCount}`)
+  const id = (n: string) => `${uid}-${n}`
+  const u = (n: string) => `url(#${id(n)})`
   const b = BUILD[look.build ?? 'normal']
-  const fat = b.fat // -1 schlank … +1 kräftig (Körperfett)
+  const fat = b.fat
   const s = Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, Math.max(0, Math.min(1.5, v + b.m))])) as Sizes
-  const g = Math.max(0, Math.max(s.brust, s.ruecken, s.schultern, s.arme, s.beine, s.core) - Math.max(0, fat) * 0.35) // Definition (Körperfett verdeckt Muskeln)
+  const g = Math.max(0, Math.max(s.brust, s.ruecken, s.schultern, s.arme, s.beine, s.core) - Math.max(0, fat) * 0.35)
   const w = look.body === 'w'
   const skin = SKINS[look.skin] ?? SKINS[2]
-  const skinDark = shade(skin, 0.78)
-  const skinLight = shade(skin, 1.08)
+  const skinDark = shade(skin, 0.7)
+  const skinLine = shade(skin, 0.58)
   const hairC = HAIRS[look.hairColor] ?? HAIRS[0]
+  const browC = look.hairColor === 5 ? '#2a2a2a' : look.hair === 'glatze' ? shade(hairC === '#B8B8B8' ? '#555555' : hairC, 1) : hairC
 
-  // Maße (halbe Breiten ab Mitte x=100)
-  const neck = (w ? 6 : 7.5) + s.schultern * 2.5
-  const shoulder = (w ? 28 : 31) + s.schultern * 9 + s.ruecken * 5
-  const armpit = (w ? 21 : 23) + s.ruecken * 7 + s.brust * 2
-  const chest = (w ? 21 : 22.5) + s.brust * 4 + s.ruecken * 3 + fat * 2
-  const waist = (w ? 15 : 18) + s.core * 2 + fat * (fat > 0 ? 8 : 1.5)
-  const hip = (w ? 24 : 21) + s.beine * 2 + fat * (fat > 0 ? 4 : 1)
-  const thigh = (w ? 14 : 13) + s.beine * 6 + fat * 1.5
-  const calf = 7.5 + s.beine * 4
-  const bi = 6 + s.arme * 5.5 + fat * 1.5
-  const fore = 5 + s.arme * 3.5 + fat * 0.8
-  const armX = shoulder + 1 + s.arme * 2
+  // ── Maße (halbe Breiten ab Mitte x = 100)
+  const sh = (w ? 26 : 33) + s.schultern * 9 + s.ruecken * 4
+  const dr = (w ? 8 : 11) + s.schultern * 5.5
+  const lat = (w ? 21 : 26) + s.ruecken * 9 + s.brust * 2 + fat * 2
+  const waist = (w ? 15.5 : 21) + s.core * 1.5 + fat * (fat > 0 ? 9 : 1.5)
+  const hip = (w ? 29 : 24) + fat * 3 + s.beine * 2
+  const th = (w ? 16.5 : 14) + s.beine * 6 + fat * 2
+  const calf = (w ? 8 : 8.5) + s.beine * 3.5
+  const ua = (w ? 8 : 10) + s.arme * 4 + fat * 1.2
+  const fa = (w ? 7 : 8) + s.arme * 2.5 + fat * 0.6
+  const neckW = (w ? 9 : 11) + s.schultern * 3
 
-  const R = (pts: P[]) => [...pts, ...mirror(pts).reverse()]
+  const J = (d: 1 | -1): P => [100 + d * (sh - 2), 124]
+  const E = (d: 1 | -1): P => [100 + d * (sh + 11 + s.arme * 4 + fat * 2), 160]
+  const F = (d: 1 | -1): P => [100 + d * (waist + 17 + s.arme * 2), 194]
+  const K = (d: 1 | -1): P => [100 + d * (hip + 3), 250]
+  const A = (d: 1 | -1): P => [100 + d * (hip + 7), 280]
 
-  // Rumpf (rechte Hälfte von oben nach unten, dann gespiegelt zurück)
-  const torso = smooth(
-    R([
-      [100, 57],
-      [100 + neck, 57],
-      [100 + shoulder - 9, 63 - s.schultern * 2],
-      [100 + shoulder - 2, 70],
-      [100 + armpit, 86],
-      [100 + chest, 102],
-      [100 + waist + 2, 126],
-      [100 + waist, 142],
-      [100 + hip, 162],
-      [100 + 4, 174],
-    ]).filter((_, i, a) => !(i === a.length - 1)),
+  const torso = smooth(sym([[100, 106], [100 + neckW, 106], [100 + sh - 10, 112 - s.schultern * 2], [100 + sh - 3, 120], [100 + lat, 138], [100 + lat - 1, 154], [100 + waist + 1, 178], [100 + hip, 196]]).slice(0, -1))
+  const topEnd = w ? 162 : 196
+  const tank = smooth(
+    sym([
+      [100, 128 - (w ? 4 : 0)],
+      [100 + 9, 112],
+      [100 + 17, 110],
+      [100 + lat - 6, 134],
+      [100 + lat - 1, 148],
+      [100 + (w ? lat - 4 : waist + 1.5), w ? 160 : 178],
+      [100 + (w ? lat - 8 : hip + 1), topEnd],
+      [100, topEnd + 2],
+    ]).slice(0, -1),
   )
-  const leg = (sgn: 1 | -1) =>
-    smooth(
-      (
-        [
-          [100 + sgn * 2, 170],
-          [100 + sgn * (hip + 1), 164],
-          [100 + sgn * (thigh * 2 - 2), 196],
-          [100 + sgn * (thigh + 12), 226],
-          [100 + sgn * (calf + 15), 250],
-          [100 + sgn * 16, 284],
-          [100 + sgn * 7, 286],
-          [100 + sgn * (6 - calf * 0.2), 256],
-          [100 + sgn * 4.5, 230],
-          [100 + sgn * 2.5, 200],
-        ] as P[]
-      ),
-    )
-  const arm = (sgn: 1 | -1) =>
-    smooth(
-      (
-        [
-          [100 + sgn * (shoulder - 6), 66],
-          [100 + sgn * (armX + bi * 0.55), 84],
-          [100 + sgn * (armX + bi * 0.7), 104],
-          [100 + sgn * (armX + 4), 124],
-          [100 + sgn * (armX + 3 + fore * 0.8), 140],
-          [100 + sgn * (armX + 4), 160],
-          [100 + sgn * (armX - 3), 160],
-          [100 + sgn * (armX - fore * 0.9 - 1), 140],
-          [100 + sgn * (armX - 5), 124],
-          [100 + sgn * (armX - bi * 0.75), 102],
-          [100 + sgn * (armpit + 1), 88],
-        ] as P[]
-      ),
-    )
+  const pants = smooth(
+    sym([
+      [100, 186],
+      [100 + hip + 1, 184],
+      [100 + hip + 5, 202],
+      [100 + hip + 3 + th * 0.4, 230],
+      [100 + hip + 3 + th * 0.55, 256],
+      [100 + hip - 3, 262],
+      [100 + 9, 232],
+      [100 + 3, 212],
+    ]).slice(0, -1),
+  )
+  const head = smooth(
+    w
+      ? [[100, 25], [123, 31], [133, 54], [131, 75], [119, 92], [100, 99], [81, 92], [69, 75], [67, 54], [77, 31]]
+      : [[100, 24], [124, 31], [134, 55], [131, 77], [120, 93], [100, 100], [80, 93], [69, 77], [66, 55], [76, 31]],
+  )
 
-  const def = 0.18 + g * 0.55 // Sichtbarkeit der Muskel-Linien
-  const line = { stroke: skinDark, strokeWidth: 1.3, fill: 'none', strokeLinecap: 'round' as const }
-  const A = (d: string, extra: Record<string, unknown> = {}) => <motion.path animate={{ d }} initial={false} transition={spring} {...extra} />
+  const def = Math.min(1, 0.1 + g * 0.6)
+  const line = { stroke: skinLine, strokeWidth: 1.4, fill: 'none', strokeLinecap: 'round' as const }
+  const MP = ({ d, ...rest }: { d: string } & Record<string, unknown>) => <motion.path animate={{ d }} initial={false} transition={spring} {...rest} />
+  const MC = ({ c, r, ...rest }: { c: P; r: number } & Record<string, unknown>) => <motion.circle animate={{ cx: c[0], cy: c[1], r }} initial={false} transition={spring} {...rest} />
+
+  const eye = (x: number) => (
+    <g>
+      <ellipse cx={x} cy={65} rx={w ? 7.6 : 7.2} ry={w ? 8.6 : 8} fill="#fff" />
+      <circle cx={x + 0.4} cy={66} r={5.4} fill={u('iris')} />
+      <circle cx={x + 0.4} cy={66} r={2.6} fill="#0b0b0b" />
+      <circle cx={x - 1.6} cy={63.4} r={1.7} fill="#fff" />
+      <circle cx={x + 2.2} cy={68.2} r={0.8} fill="#fff" opacity="0.8" />
+      <path d={`M ${x - 7.8} 63 Q ${x} 55.5 ${x + 7.8} 63`} stroke="#1a1a1a" strokeWidth={w ? 2.2 : 1.7} fill="none" strokeLinecap="round" />
+      {w && <path d={`M ${x + (x < 100 ? -7.4 : 7.4)} 62.4 l ${x < 100 ? -2.6 : 2.6} -2`} stroke="#1a1a1a" strokeWidth="1.3" strokeLinecap="round" />}
+    </g>
+  )
 
   return (
     <svg viewBox="0 0 200 300" className={className} role="img" aria-label="Dein Avatar">
       <defs>
-        <radialGradient id="av-skin" cx="45%" cy="30%" r="80%">
-          <stop offset="0%" stopColor={skinLight} />
-          <stop offset="100%" stopColor={skin} />
+        <radialGradient id={id('skin')} cx="35%" cy="28%" r="80%">
+          <stop offset="0%" stopColor={shade(skin, 1.18)} />
+          <stop offset="55%" stopColor={skin} />
+          <stop offset="100%" stopColor={skinDark} />
         </radialGradient>
-        <linearGradient id="av-shorts" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1c1c1c" />
-          <stop offset="100%" stopColor="#0d0d0d" />
+        <radialGradient id={id('limb')} cx="38%" cy="32%" r="90%">
+          <stop offset="0%" stopColor={shade(skin, 1.14)} />
+          <stop offset="60%" stopColor={skin} />
+          <stop offset="100%" stopColor={shade(skin, 0.84)} />
+        </radialGradient>
+        <radialGradient id={id('face')} cx="42%" cy="38%" r="70%">
+          <stop offset="0%" stopColor={shade(skin, 1.15)} />
+          <stop offset="70%" stopColor={skin} />
+          <stop offset="100%" stopColor={shade(skin, 0.78)} />
+        </radialGradient>
+        <radialGradient id={id('hair')} cx="38%" cy="20%" r="85%">
+          <stop offset="0%" stopColor={shade(hairC, 1.35)} />
+          <stop offset="60%" stopColor={hairC} />
+          <stop offset="100%" stopColor={shade(hairC, 0.6)} />
+        </radialGradient>
+        <radialGradient id={id('iris')} cx="50%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#8a5a33" />
+          <stop offset="100%" stopColor="#3b2414" />
+        </radialGradient>
+        <linearGradient id={id('tank')} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#4a4f57" />
+          <stop offset="55%" stopColor="#2c3036" />
+          <stop offset="100%" stopColor="#1a1d21" />
         </linearGradient>
-        <filter id="av-glow" x="-40%" y="-20%" width="180%" height="140%">
-          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#C6FF00" floodOpacity="0.25" />
+        <linearGradient id={id('pants')} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#30343b" />
+          <stop offset="100%" stopColor="#121417" />
+        </linearGradient>
+        <linearGradient id={id('shoe')} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f4f6f8" />
+          <stop offset="100%" stopColor="#b9c0c8" />
+        </linearGradient>
+        <filter id={id('glow')} x="-30%" y="-20%" width="160%" height="140%">
+          <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#C6FF00" floodOpacity="0.22" />
         </filter>
       </defs>
 
-      <g filter="url(#av-glow)" stroke={skinDark} strokeWidth="0.8">
-        {/* Arme hinten */}
-        {A(arm(1), { fill: 'url(#av-skin)' })}
-        {A(arm(-1), { fill: 'url(#av-skin)' })}
-        {/* Hände */}
-        <motion.circle animate={{ cx: 100 + armX + 0.5, cy: 165 }} initial={false} transition={spring} r={5.5} fill="url(#av-skin)" />
-        <motion.circle animate={{ cx: 100 - armX - 0.5, cy: 165 }} initial={false} transition={spring} r={5.5} fill="url(#av-skin)" />
-        {/* Beine */}
-        {A(leg(1), { fill: 'url(#av-skin)' })}
-        {A(leg(-1), { fill: 'url(#av-skin)' })}
-        {/* Schuhe */}
-        {[1, -1].map((d) => (
-          <path key={d} d={`M ${100 + d * 7} 283 Q ${100 + d * 12} 279 ${100 + d * 17} 283 L ${100 + d * 19} 292 Q ${100 + d * 12} 295 ${100 + d * 6} 292 Z`} fill="#111" stroke="#C6FF00" strokeWidth="0.9" />
+      {/* Bodenschatten */}
+      <motion.ellipse animate={{ rx: 46 + hip * 0.6 }} initial={false} transition={spring} cx="100" cy="292" ry="6" fill="#000" opacity="0.45" />
+
+      <g filter={u('glow')}>
+        {/* lange Haare hinten */}
+        {look.hair === 'lang' && <path d="M 66 52 Q 60 100 66 138 Q 84 146 100 140 Q 116 146 134 138 Q 140 100 134 52 Z" fill={u('hair')} />}
+
+        {/* Waden + Schuhe */}
+        {([1, -1] as const).map((d) => (
+          <g key={`leg${d}`}>
+            <MP d={limb(...K(d), calf, ...A(d), calf * 0.72)} fill={u('limb')} />
+            <MP d={`M ${f1(A(d)[0] - d * 9)} 279 Q ${f1(A(d)[0])} 272 ${f1(A(d)[0] + d * 10)} 280 Q ${f1(A(d)[0] + d * 17)} 284 ${f1(A(d)[0] + d * 16)} 291 L ${f1(A(d)[0] - d * 11)} 291 Q ${f1(A(d)[0] - d * 12)} 284 ${f1(A(d)[0] - d * 9)} 279 Z`} fill={u('shoe')} stroke="#8d96a0" strokeWidth="0.6" />
+            <MP d={`M ${f1(A(d)[0] - d * 11)} 288.5 L ${f1(A(d)[0] + d * 16)} 288.5`} stroke="#C6FF00" strokeWidth="2" strokeLinecap="round" />
+            <MP d={`M ${f1(A(d)[0] - d * 3)} 279 l ${d * 6} 3 m ${-d * 7} 1 l ${d * 6} 3`} stroke="#8d96a0" strokeWidth="0.9" strokeLinecap="round" fill="none" />
+          </g>
         ))}
-        {/* Rumpf + Hals */}
-        <rect x={100 - neck + 1} y={44} width={(neck - 1) * 2} height={16} rx={4} fill="url(#av-skin)" />
-        {A(torso, { fill: 'url(#av-skin)' })}
-      </g>
 
-      {/* Muskel-Definition */}
-      <g opacity={def}>
-        {/* Brust */}
-        {A(`M ${100 - chest + 4} 100 Q ${100 - chest / 2} ${106 + s.brust * 3} 100 101 Q ${100 + chest / 2} ${106 + s.brust * 3} ${100 + chest - 4} 100`, line)}
-        {A(`M 100 74 L 100 101`, { ...line, strokeWidth: 1 })}
-        {/* Schultern */}
-        {A(`M ${100 - shoulder + 3} 72 Q ${100 - shoulder + 10} ${86 + s.schultern * 2} ${100 - armpit + 3} 90`, line)}
-        {A(`M ${100 + shoulder - 3} 72 Q ${100 + shoulder - 10} ${86 + s.schultern * 2} ${100 + armpit - 3} 90`, line)}
-        {/* Bauch */}
-        {!w || g > 0.4 ? (
-          <>
-            {A(`M 100 110 L 100 ${150}`, line)}
-            {[118, 129, 140].map((y) => A(`M ${100 - waist + 5} ${y} Q 100 ${y + 2} ${100 + waist - 5} ${y}`, { ...line, key: y, strokeWidth: 1 }))}
-          </>
-        ) : null}
-        {/* Bizeps / Quads */}
-        {A(`M ${100 + armX - 2} 92 Q ${100 + armX + bi * 0.4} 106 ${100 + armX} 120`, line)}
-        {A(`M ${100 - armX + 2} 92 Q ${100 - armX - bi * 0.4} 106 ${100 - armX} 120`, line)}
-        {A(`M ${100 + thigh + 4} 184 Q ${100 + thigh + 1} 206 ${100 + 11} 226`, line)}
-        {A(`M ${100 - thigh - 4} 184 Q ${100 - thigh - 1} 206 ${100 - 11} 226`, line)}
-      </g>
+        {/* Hose (3/4-Tights) */}
+        <MP d={pants} fill={u('pants')} />
+        {([1, -1] as const).map((d) => (
+          <MP key={`st${d}`} d={`M ${f1(100 + d * (hip + 2))} 190 Q ${f1(100 + d * (hip + 4 + th * 0.4))} 226 ${f1(100 + d * (hip + 2 + th * 0.5))} 256`} stroke="#C6FF00" strokeWidth="1.4" fill="none" opacity="0.85" />
+        ))}
+        <g opacity={0.25 + def * 0.4}>
+          {([1, -1] as const).map((d) => (
+            <MP key={`q${d}`} d={`M ${f1(100 + d * (hip - 6))} 206 Q ${f1(100 + d * (hip - 2 - s.beine * 2))} 228 ${f1(100 + d * (hip - 4))} 248`} stroke="#0a0b0d" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+          ))}
+        </g>
 
-      {/* Kleidung */}
-      {A(
-        smooth([
-          [100 - hip - 1, 154], [100, 157], [100 + hip + 1, 154],
-          [100 + hip + 3, 172], [100 + thigh * 2 - 1, 198], [100 + 4, 200], [100, 186],
-          [100 - 4, 200], [100 - thigh * 2 + 1, 198], [100 - hip - 3, 172],
-        ]),
-        { fill: 'url(#av-shorts)', stroke: '#C6FF00', strokeWidth: 1.1 },
-      )}
-      {w &&
-        A(
-          `M ${100 - chest + 3} 84 Q 100 ${92} ${100 + chest - 3} 84 Q ${100 + chest + 1} 96 ${100 + chest - 1} 108 Q 100 ${112 + s.brust * 2} ${100 - chest + 1} 108 Q ${100 - chest - 1} 96 ${100 - chest + 3} 84 Z`,
-          { fill: '#141414', stroke: '#C6FF00', strokeWidth: 1.1 },
-        )}
+        {/* Arme */}
+        {([1, -1] as const).map((d) => (
+          <g key={`arm${d}`}>
+            <MP d={limb(...J(d), ua, ...E(d), ua * 0.78)} fill={u('limb')} />
+            <MP d={limb(...E(d), fa, ...F(d), fa * 0.8)} fill={u('limb')} />
+            <MP d={`M ${f1(J(d)[0] + d * 2)} ${f1(J(d)[1] + 12)} Q ${f1((J(d)[0] + E(d)[0]) / 2 + d * (ua * 0.15))} ${f1(144 + s.arme * 3)} ${f1(E(d)[0] - d * ua * 0.4)} ${f1(E(d)[1] - 4)}`} {...line} opacity={def * 0.8} />
+          </g>
+        ))}
 
-      {/* Kopf */}
-      <g>
-        <ellipse cx="100" cy="30" rx="13" ry="16" fill="url(#av-skin)" stroke={skinDark} strokeWidth="0.8" />
-        <ellipse cx="87.5" cy="31" rx="2.2" ry="3.5" fill={skin} stroke={skinDark} strokeWidth="0.6" />
-        <ellipse cx="112.5" cy="31" rx="2.2" ry="3.5" fill={skin} stroke={skinDark} strokeWidth="0.6" />
-        {/* Gesicht */}
-        <ellipse cx="95" cy="30" rx="1.5" ry="1.7" fill="#161616" />
-        <ellipse cx="105" cy="30" rx="1.5" ry="1.7" fill="#161616" />
-        <path d="M 92 26 Q 95 24.5 97.5 25.6 M 102.5 25.6 Q 105 24.5 108 26" stroke={look.hair === 'glatze' ? skinDark : hairC} strokeWidth="1.3" fill="none" strokeLinecap="round" />
-        <path d="M 100 31 Q 101.5 35 99.5 35.5" stroke={skinDark} strokeWidth="0.9" fill="none" strokeLinecap="round" />
-        <path d="M 96 39 Q 100 41.5 104 39" stroke={shade(skin, 0.6)} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-        {look.beard && <path d="M 87.5 32 Q 88 46 100 47.5 Q 112 46 112.5 32 Q 110 41 104 40.5 Q 100 43 96 40.5 Q 90 41 87.5 32 Z" fill={hairC} opacity="0.92" />}
-        {/* Haare */}
-        {look.hair === 'kurz' && <path d="M 86.5 28 Q 85 13 100 12 Q 115 13 113.5 28 Q 111 19 104 19.5 Q 96 17 91 21 Q 88 23 86.5 28 Z" fill={hairC} />}
-        {look.hair === 'buzz' && <path d="M 87 25 Q 87 13.5 100 13 Q 113 13.5 113 25 Q 108 18.5 100 18.5 Q 92 18.5 87 25 Z" fill={hairC} opacity="0.85" />}
-        {look.hair === 'locken' && (
-          <g fill={hairC}>
-            {[[89, 20], [95, 15], [101, 14], [107, 16], [111, 21], [86.5, 26], [113.5, 26], [92, 18], [104, 13.5]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={5.2} />)}
+        {/* Rumpf */}
+        <rect x={100 - neckW + 1} y={88} width={(neckW - 1) * 2} height={24} rx={6} fill={u('skin')} />
+        <MP d={torso} fill={u('skin')} />
+        {w && (
+          <g opacity={def * 0.75}>
+            <MP d={`M 100 166 L 100 ${f1(184)}`} {...line} />
+            {[170, 178].map((y) => (
+              <MP key={y} d={`M ${f1(100 - waist + 6)} ${y} Q 100 ${y + 2} ${f1(100 + waist - 6)} ${y}`} {...line} strokeWidth={1.1} />
+            ))}
           </g>
         )}
-        {look.hair === 'lang' && (
-          <path d="M 86 30 Q 84 12 100 11.5 Q 116 12 114 30 L 116 52 Q 113 56 110 50 L 111 27 Q 108 18 100 18 Q 92 18 89 27 L 90 50 Q 87 56 84 52 Z" fill={hairC} />
+        <MP d={tank} fill={u('tank')} />
+        <MP d={smooth(sym([[100, 128 - (w ? 4 : 0)], [100 + 9, 112], [100 + 17, 110]]).slice(0, -1))} fill="none" />
+        <MP d={`M ${f1(100 - 17)} 110.5 Q 100 ${w ? 136 : 140} ${f1(100 + 17)} 110.5`} stroke="#C6FF00" strokeWidth="1.6" fill="none" opacity="0.9" />
+        {w && (
+          <g>
+            <MP d={`M ${f1(100 - lat + 6)} 140 Q ${f1(100 - lat / 2)} 160 98 150`} stroke="#0e1013" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.7" />
+            <MP d={`M ${f1(100 + lat - 6)} 140 Q ${f1(100 + lat / 2)} 160 102 150`} stroke="#0e1013" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.7" />
+            <ellipse cx="88" cy="140" rx="6" ry="4" fill="#fff" opacity="0.07" />
+            <ellipse cx="112" cy="140" rx="6" ry="4" fill="#fff" opacity="0.07" />
+          </g>
         )}
+        {/* Muskeln unter dem Shirt */}
+        <g opacity={0.06 + def * 0.6}>
+          {!w && <MP d={`M ${f1(100 - lat + 7)} 148 Q ${f1(100 - lat / 2)} ${f1(154 + s.brust * 5)} 100 147 Q ${f1(100 + lat / 2)} ${f1(154 + s.brust * 5)} ${f1(100 + lat - 7)} 148`} stroke="#0e1013" strokeWidth="1.6" fill="none" strokeLinecap="round" />}
+          {!w && (
+            <>
+              <MP d={`M 100 152 L 100 188`} stroke="#0e1013" strokeWidth="1.2" fill="none" />
+              {[162, 172, 181].map((y) => (
+                <MP key={y} d={`M ${f1(100 - waist + 7)} ${y} Q 100 ${y + 2.5} ${f1(100 + waist - 7)} ${y}`} stroke="#0e1013" strokeWidth="1.1" fill="none" opacity={fat > 0 ? 0.3 : 1} />
+              ))}
+            </>
+          )}
+        </g>
+        {fat > 0 && <MP d={`M ${f1(100 - waist + 2)} 172 Q 100 ${192} ${f1(100 + waist - 2)} 172`} stroke="#0e1013" strokeWidth="1.2" fill="none" opacity="0.4" />}
+
+        {/* Schultern (Deltas) */}
+        {([1, -1] as const).map((d) => (
+          <g key={`dl${d}`}>
+            <MP d={limb(J(d)[0] - d * 5, J(d)[1] - 5, dr * 0.85, J(d)[0] + d * 2, J(d)[1] + 5, dr * 0.92)} fill={u('limb')} />
+            <MP d={`M ${f1(J(d)[0] - d * dr * 0.55)} ${f1(J(d)[1] + dr * 0.55)} Q ${f1(J(d)[0] + d * dr * 0.2)} ${f1(J(d)[1] + dr * 1.1)} ${f1(J(d)[0] + d * dr * 0.9)} ${f1(J(d)[1] + dr * 0.3)}`} {...line} opacity={def * 0.9} />
+          </g>
+        ))}
+
+        {/* Fäuste + Schweißbänder */}
+        {([1, -1] as const).map((d) => {
+          const f = F(d), e = E(d)
+          const dx = f[0] - e[0], dy = f[1] - e[1], L = Math.hypot(dx, dy)
+          const w1: P = [f[0] - (dx / L) * 9, f[1] - (dy / L) * 9]
+          const w2: P = [f[0] - (dx / L) * 3, f[1] - (dy / L) * 3]
+          return (
+            <g key={`h${d}`}>
+              <MP d={limb(...w1, fa * 0.86, ...w2, fa * 0.84)} fill="#C6FF00" />
+              <MC c={[f[0] + d * 0.5, f[1] + 5]} r={7.5 + s.arme * 1.5} fill={u('limb')} />
+              <MP d={`M ${f1(f[0] - 5)} ${f1(f[1] + 3)} Q ${f1(f[0])} ${f1(f[1] + 6)} ${f1(f[0] + 5)} ${f1(f[1] + 3)}`} {...line} strokeWidth={1} opacity="0.6" />
+            </g>
+          )
+        })}
+
+        {/* Kopf */}
+        <ellipse cx="67" cy="66" rx="6" ry="9" fill={u('skin')} />
+        <ellipse cx="133" cy="66" rx="6" ry="9" fill={u('skin')} />
+        <path d={head} fill={u('face')} />
       </g>
+
+      {/* Gesicht */}
+      <ellipse cx="80" cy="80" rx="6" ry="3.5" fill="#ff7a6b" opacity="0.16" />
+      <ellipse cx="120" cy="80" rx="6" ry="3.5" fill="#ff7a6b" opacity="0.16" />
+      {look.beard && (
+        <>
+          <path d="M 67 60 Q 68 90 86 96 Q 100 102 114 96 Q 132 90 133 60 Q 129 80 118 84 Q 100 80 82 84 Q 71 80 67 60 Z" fill={u('hair')} opacity="0.9" />
+          <path d="M 89 85 Q 100 79 111 85 Q 100 83.5 89 85 Z" fill={hairC} opacity="0.9" />
+        </>
+      )}
+      {eye(87)}
+      {eye(113)}
+      <path d={w ? 'M 79 53 Q 87 49 94 52' : 'M 78 53 Q 87 47.5 95 51.5'} stroke={browC} strokeWidth={w ? 2.4 : 3.6} fill="none" strokeLinecap="round" />
+      <path d={w ? 'M 106 52 Q 113 49 121 53' : 'M 105 51.5 Q 113 47.5 122 53'} stroke={browC} strokeWidth={w ? 2.4 : 3.6} fill="none" strokeLinecap="round" />
+      <path d="M 99 71 Q 103 77 99 79" stroke={skinDark} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
+      <path d={w ? 'M 93 87 Q 100 91.5 107 87' : 'M 92 87 Q 100 91 108 87'} stroke={shade(skin, 0.45)} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      {w && <path d="M 94 88 Q 100 92 106 88 Q 100 90.5 94 88 Z" fill="#c45a5a" opacity="0.55" />}
+
+      {/* Haare */}
+      {look.hair === 'kurz' && (
+        <g fill={u('hair')}>
+          <path d="M 66 62 Q 62 26 100 21 Q 138 26 134 62 Q 130 42 118 39 Q 100 35 82 39 Q 70 42 66 62 Z" />
+          <path d="M 74 40 Q 76 14 102 13 Q 118 6 130 28 Q 128 22 120 22 Q 126 32 122 40 Q 112 26 98 30 Q 104 22 96 22 Q 84 28 74 40 Z" />
+        </g>
+      )}
+      {look.hair === 'buzz' && <path d="M 67 56 Q 67 23 100 22 Q 133 23 133 56 Q 126 37 100 35 Q 74 37 67 56 Z" fill={u('hair')} opacity="0.9" />}
+      {look.hair === 'locken' && (
+        <g fill={u('hair')}>
+          {[[72, 46, 9], [78, 33, 10], [90, 25, 10.5], [104, 22, 11], [118, 27, 10.5], [128, 38, 10], [131, 51, 8], [69, 56, 7], [97, 32, 8], [112, 33, 8]].map(([x, y, r], i) => (
+            <circle key={i} cx={x} cy={y} r={r} />
+          ))}
+        </g>
+      )}
+      {look.hair === 'lang' && <path d="M 64 70 Q 60 22 100 20 Q 140 22 136 70 Q 132 46 122 38 Q 104 46 86 36 Q 70 44 64 70 Z" fill={u('hair')} />}
+      {look.hair === 'glatze' && <ellipse cx="88" cy="36" rx="12" ry="6" fill="#fff" opacity="0.18" transform="rotate(-18 88 36)" />}
     </svg>
   )
 }
