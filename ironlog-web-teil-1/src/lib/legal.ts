@@ -12,6 +12,6 @@ export const OPERATOR = {
   phone: '', // optional
 }
 
-export const LEGAL_UPDATED = '16.10.2026'
+export const LEGAL_UPDATED = '19.10.2026'
 
 export const legalIncomplete = () => Object.values(OPERATOR).some((v) => typeof v === 'string' && v.startsWith('['))

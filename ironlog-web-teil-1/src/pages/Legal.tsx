@@ -110,8 +110,8 @@ export function Datenschutz() {
       <h2>4. Dienstleister (Auftragsverarbeiter)</h2>
       <ul>
         <li>
-          <b>Netlify, Inc.</b> (USA) – Hosting der Website. Dabei werden technische Zugriffsdaten verarbeitet. Die Übermittlung in die USA stützt sich auf den EU-US Data Privacy Framework bzw.
-          Standardvertragsklauseln.
+          <b>Cloudflare, Inc.</b> (USA) – Hosting und Auslieferung der Website (Cloudflare Pages, weltweites Netzwerk). Dabei werden technische Zugriffsdaten (z. B. IP-Adresse, Zeitpunkt, Browser) verarbeitet. Die
+          Übermittlung in die USA stützt sich auf den EU-US Data Privacy Framework bzw. Standardvertragsklauseln.
         </li>
         {online && (
           <li>
