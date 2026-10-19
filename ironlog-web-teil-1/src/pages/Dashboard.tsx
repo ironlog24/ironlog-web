@@ -15,6 +15,7 @@ import { fmtDate, fmtVolume, greeting, nf, startOfWeek } from '@/lib/utils'
 import { prEvents, weeklyVolume, weekStreak, workoutVolume } from '@/data/stats'
 import type { Template } from '@/data/types'
 import { BuddyStrip } from '@/components/BuddyStrip'
+import { AvatarCard } from '@/components/Avatar'
 import { DEFAULT_GOALS, dayString, nutritionStore, sumEntries } from '@/data/nutrition'
 
 export default function Dashboard() {
@@ -118,6 +119,8 @@ export default function Dashboard() {
         )}
 
         <NutritionToday />
+
+        <AvatarCard />
 
         <BuddyStrip />
 

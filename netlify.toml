@@ -1,0 +1,3 @@
+# Die App liegt im Unterordner – Netlify baut von dort aus
+[build]
+  base = "ironlog-web-teil-1"
