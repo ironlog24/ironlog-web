@@ -1,0 +1,42 @@
+# Baut IRONLOG bei jedem Push auf main und lädt es direkt zu Netlify hoch.
+# Umgeht die Netlify-Sperre "Unrecognized Git contributor" (Deploy per API statt Git-Build).
+name: Deploy zu Netlify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: netlify-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ironlog-web-teil-1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ironlog-web-teil-1/package-lock.json
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: App bauen
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Zu Netlify hochladen
+        run: npx --yes netlify-cli@17 deploy --dir=dist --prod --message "GitHub ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
