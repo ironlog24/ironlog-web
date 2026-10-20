@@ -37,7 +37,7 @@ export default function Progress() {
     return (
       <Page>
         <PageHero image={HERO.progress} kicker="Fortschritt" title="Fortschritt" />
-        <Container className="mt-6 space-y-6"><EmptyState title="Noch keine Trainingsdaten" text="Fortschritt beginnt mit dem ersten Satz." /><BodyWeightCard /></Container>
+        <Container className="mt-6 space-y-6"><RankCard /><EmptyState title="Noch keine Trainingsdaten" text="Fortschritt beginnt mit dem ersten Satz." /><BodyWeightCard /></Container>
       </Page>
     )
 

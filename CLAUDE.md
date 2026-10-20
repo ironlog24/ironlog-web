@@ -40,7 +40,7 @@ Sprache mit dem Nutzer: **Deutsch**, einfache Schritt-für-Schritt-Anleitungen (
   - **Avatar-Fortschrittskarte im Recap** (`AvatarProgress` in `Recap.tsx`).
   - Migration `0006_avatar.sql` (Spalte `profiles.avatar`).
 - **Neue Übungsfotos** mit wenig Grün (`src/assets/exercises`, gleiche Dateinamen).
-- **Gym-Ränge** (`src/lib/ranks.ts`, `src/components/Ranks.tsx`): 9 Ränge Rost–Legende je Muskelgruppe nach e1RM/Körpergewicht, Körperkarte vorne/hinten auf Fortschritt, Rang-Aufstieg im Recap. Avatar-Duell auf der Buddy-Seite (Migration 0007).
+- **Gym-Ränge** (`src/lib/ranks.ts`, `src/components/Ranks.tsx`): 9 Ränge je Muskelgruppe nach e1RM/Körpergewicht: Holz, Bronze, Silber, Gold, Platin, Diamant, Champion, Titan, Olympier. Anatomische Körperkarte vorne/hinten auf Fortschritt, Rang-Karte auch ohne Training, Rang-Aufstieg im Recap. Avatar-Duell auf der Buddy-Seite (Migration 0007).
 
 ## Ideen / offene Punkte
 - Buddys Version 2: Anstupsen per Push, Monats-Recap im „Wrapped“-Stil, animierte Karten, WhatsApp-Linkvorschau.

@@ -16,15 +16,15 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { key: 'rost', name: 'Rost', min: 0, color: '#8B5A3C', glow: '#B8734A' },
-  { key: 'eisen', name: 'Eisen', min: 0.15, color: '#7D8590', glow: '#A8B0BA' },
-  { key: 'bronze', name: 'Bronze', min: 0.28, color: '#CD7F45', glow: '#E89A5E' },
-  { key: 'silber', name: 'Silber', min: 0.4, color: '#C9D1DA', glow: '#EEF3F8' },
-  { key: 'gold', name: 'Gold', min: 0.52, color: '#F2C230', glow: '#FFDD66' },
-  { key: 'platin', name: 'Platin', min: 0.63, color: '#3FD6C6', glow: '#7BF2E5' },
-  { key: 'diamant', name: 'Diamant', min: 0.74, color: '#6C8CFF', glow: '#A3B6FF' },
-  { key: 'elite', name: 'Elite', min: 0.85, color: '#C6FF00', glow: '#E2FF80' },
-  { key: 'legende', name: 'Legende', min: 0.95, color: '#FF5F1F', glow: '#FF9A6B' },
+  { key: 'holz', name: 'Holz', min: 0, color: '#8B5A2B', glow: '#B88250' },
+  { key: 'bronze', name: 'Bronze', min: 0.15, color: '#C07A4A', glow: '#E8A06E' },
+  { key: 'silber', name: 'Silber', min: 0.28, color: '#AEB8C6', glow: '#E6ECF4' },
+  { key: 'gold', name: 'Gold', min: 0.4, color: '#F2C230', glow: '#FFDD66' },
+  { key: 'platin', name: 'Platin', min: 0.52, color: '#2FCFA8', glow: '#7BF2D5' },
+  { key: 'diamant', name: 'Diamant', min: 0.63, color: '#8C98FF', glow: '#C3CAFF' },
+  { key: 'champion', name: 'Champion', min: 0.74, color: '#B36BFF', glow: '#DBAEFF' },
+  { key: 'titan', name: 'Titan', min: 0.85, color: '#E0313B', glow: '#FF7179' },
+  { key: 'olympier', name: 'Olympier', min: 0.95, color: '#4FD8E0', glow: '#FFE08A' },
 ]
 
 export const UNRANKED: Tier = { key: 'none', name: 'Ohne Rang', min: -1, color: '#2A2D33', glow: '#3A3D44' }

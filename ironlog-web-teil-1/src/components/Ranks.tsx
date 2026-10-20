@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronUp, Scale, Trophy } from 'lucide-react'
@@ -81,81 +81,103 @@ export function RankBadge({ tier, size = 44, className }: { tier: Tier; size?: n
   )
 }
 
-/* ── Körperkarte ── */
+/* ── Körperkarte (anatomische Figur, vorne/hinten) ── */
 
-type Region = { g: MuscleGroup; el: ReactNode }
-const mir = 'translate(100 0) scale(-1 1)'
+type P = [number, number]
+function sm(pts: P[], t = 0.55) {
+  const n = pts.length
+  const at = (i: number) => pts[(i + n) % n]
+  let d = `M ${pts[0][0]} ${pts[0][1]}`
+  for (let i = 0; i < n; i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2)
+    const c1 = [p1[0] + ((p2[0] - p0[0]) * t) / 3, p1[1] + ((p2[1] - p0[1]) * t) / 3]
+    const c2 = [p2[0] - ((p3[0] - p1[0]) * t) / 3, p2[1] - ((p3[1] - p1[1]) * t) / 3]
+    d += ` C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0]} ${p2[1]}`
+  }
+  return d + ' Z'
+}
+const mir = 'translate(120 0) scale(-1 1)'
 
+// linke Körperhälfte (x < 60), wird gespiegelt
+const BODY_HALF: P[] = [[60,27],[54.5,28],[54,34],[46,37],[35,38],[26,41.5],[21,50],[20.5,62],[20.5,74],[20,82],[16.5,88],[13,100],[12,110],[9.5,117],[11,124],[16,125.5],[19,118],[20,111],[24,103],[28,92],[30.5,84],[32,74],[33,64],[35,62],[35.5,72],[37,86],[39.5,98],[38,110],[35.5,122],[34.5,138],[37,152],[39.5,160],[37,172],[38.5,188],[42.5,200],[41,206],[44,209],[54,209],[54.5,202],[55,192],[56.5,178],[56.5,164],[57.5,152],[58.5,136],[60,120]]
+const DELT: P[] = [[43,39],[36,38.8],[28.5,41.5],[23.5,48],[22,56],[23,61],[27.5,59.5],[31,53],[35.5,47.5],[41.5,43.5]]
+const FOREARM: P[] = [[23.5,85],[18.5,89],[15,98],[14,107],[17,110.5],[21.5,105.5],[25.5,96],[27.5,89]]
+const ABS = 'M51.3 66.5h7.7v7h-7.7z M51.3 75h7.7v7h-7.7z M51.5 83.5h7.5v7.5h-7.5z M52 92.5h7v14q-4.5 -2 -7 -8z'
+
+type Region = { g: MuscleGroup; d: string; whole?: boolean }
 const FRONT: Region[] = [
-  { g: 'schultern', el: <ellipse cx="29" cy="43" rx="7.5" ry="8" /> },
-  { g: 'brust', el: <path d="M49 41 L49 58 Q38 61 32 55 Q30 46 34 41 Q41 38 49 41 Z" /> },
-  { g: 'arme', el: <ellipse cx="25.5" cy="61" rx="4.6" ry="10" transform="rotate(10 25.5 61)" /> },
-  { g: 'arme', el: <ellipse cx="21.5" cy="83" rx="4" ry="11" transform="rotate(12 21.5 83)" /> },
-  { g: 'core', el: <g><rect x="43" y="61" width="5.6" height="7" rx="1.6" /><rect x="43" y="69.5" width="5.6" height="7" rx="1.6" /><rect x="43.4" y="78" width="5.2" height="8" rx="1.6" /></g> },
-  { g: 'core', el: <path d="M41.5 62 L41.5 88 Q37 86 35 78 Q35 68 36.5 61 Z" /> },
-  { g: 'beine', el: <path d="M48.5 100 Q47 124 45 141 Q38 143 35 138 Q33 118 36 100 Q42 97 48.5 100 Z" /> },
-  { g: 'beine', el: <ellipse cx="39.5" cy="165" rx="5" ry="13" /> },
+  { g: 'ruecken', d: sm([[55.5,30],[50,35],[45,38.5],[52,38],[56,35]]) },
+  { g: 'schultern', d: sm(DELT) },
+  { g: 'brust', d: sm([[59,42],[50,40],[43,43.5],[37.5,48],[35.5,55],[37.5,61],[44,64.5],[52,64],[59,62]]) },
+  { g: 'arme', d: sm([[31,57.5],[25.5,61],[22,67],[21.5,75],[23.5,82],[27.5,80.5],[31,73],[32.5,64]]) },
+  { g: 'arme', d: sm(FOREARM) },
+  { g: 'core', d: sm([[38,65],[37,74],[38.5,86],[42,96],[47,101],[49.3,92],[48.5,78],[46,66.5]]) },
+  { g: 'core', d: ABS },
+  { g: 'beine', d: sm([[40,112],[37,122],[36.5,135],[38.5,148],[43,157],[49,158],[52.5,151],[53,138],[52,122],[49,113]]) },
+  { g: 'beine', d: sm([[56,116],[54.5,127],[55.5,140],[58,136],[59.3,122]]) },
+  { g: 'beine', d: sm([[41,166],[38.5,176],[40,188],[44,198],[47.5,196],[48.5,184],[47.5,170],[45,164]]) },
+  { g: 'beine', d: sm([[50.5,166],[51,180],[53,192],[55,182],[54.5,168]]) },
 ]
 const BACK: Region[] = [
-  { g: 'ruecken', el: <path d="M50 28 L35 38 L41 43 L50 62 Z" /> },
-  { g: 'schultern', el: <ellipse cx="29" cy="43" rx="7.5" ry="8" /> },
-  { g: 'ruecken', el: <path d="M48.5 47 L48.5 74 Q42 82 37 78 Q34 64 35.5 50 Q41 45 48.5 47 Z" /> },
-  { g: 'ruecken', el: <rect x="44" y="77" width="5" height="15" rx="2" /> },
-  { g: 'arme', el: <ellipse cx="25" cy="60" rx="5" ry="10.5" transform="rotate(10 25 60)" /> },
-  { g: 'arme', el: <ellipse cx="21.5" cy="83" rx="4" ry="11" transform="rotate(12 21.5 83)" /> },
-  { g: 'beine', el: <ellipse cx="41.5" cy="104" rx="8.5" ry="9" /> },
-  { g: 'beine', el: <path d="M48 116 Q47 132 45 143 Q38 145 35.5 140 Q34 124 35.5 114 Q42 112 48 116 Z" /> },
-  { g: 'beine', el: <ellipse cx="40" cy="163" rx="6" ry="12.5" /> },
+  { g: 'ruecken', d: sm([[60,27],[54,31],[44,37],[38,40],[44,44],[52,52],[56,62],[60,71],[64,62],[68,52],[76,44],[82,40],[76,37],[66,31]]), whole: true },
+  { g: 'schultern', d: sm(DELT) },
+  { g: 'ruecken', d: sm([[56,66],[51,57],[44,50],[38,51],[36,60],[37.5,74],[41,88],[47,97],[53,98],[54.5,89],[57.5,74]]) },
+  { g: 'ruecken', d: sm([[59,84],[56.5,92],[56,103],[59,106]]) },
+  { g: 'arme', d: sm([[31,57.5],[25.5,61],[22,67],[21.5,75],[23.5,82],[27.5,80.5],[31,73],[32.5,64]]) },
+  { g: 'arme', d: sm(FOREARM) },
+  { g: 'beine', d: sm([[59,108],[50,106],[41,111],[38.5,122],[42,131],[51,133],[59,129]]) },
+  { g: 'beine', d: sm([[40,135],[37.5,146],[40,157],[45,160],[48.5,150],[48,138]]) },
+  { g: 'beine', d: sm([[51,136],[50.5,148],[53,158],[57.5,154],[58.5,140]]) },
+  { g: 'beine', d: sm([[42,166],[39,177],[41.5,189],[46,192],[48.5,182],[47.5,169]]) },
+  { g: 'beine', d: sm([[50.5,167],[50,180],[52.5,190],[56,186],[56.5,174],[54.5,166]]) },
 ]
-
-function Silhouette() {
-  const half = (
-    <g>
-      <path d="M50 30 L44 30 L44 34 Q33 35 26 38 Q21 42 21 50 L18 70 L13 94 L15 98 L19 97 L26 74 L30 58 L33 64 L35 92 L34 100 L33 140 L35 178 L33 190 L46 190 L45 178 L47 140 L50 108 Z" />
-    </g>
-  )
-  return (
-    <g fill="#1b1e23" stroke="#2c3037" strokeWidth="0.8">
-      <ellipse cx="50" cy="15" rx="9" ry="11" />
-      {half}
-      <g transform={mir}>{half}</g>
-    </g>
-  )
-}
 
 export function BodyMap({ groups, side, selected, onSelect }: { groups: GroupRank[]; side: 'front' | 'back'; selected?: MuscleGroup | null; onSelect?: (g: MuscleGroup) => void }) {
   const byG = new Map(groups.map((g) => [g.group, g]))
   const regions = side === 'front' ? FRONT : BACK
+  const body = sm(BODY_HALF, 0.4)
   return (
-    <svg viewBox="0 0 100 196" className="h-full w-full" role="img" aria-label={side === 'front' ? 'Körper vorne' : 'Körper hinten'}>
+    <svg viewBox="6 2 108 210" className="h-full w-full" role="img" aria-label={side === 'front' ? 'Körper vorne' : 'Körper hinten'}>
       <defs>
+        <linearGradient id={`bm-skin-${side}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#c9d2da" />
+          <stop offset="100%" stopColor="#8f9aa5" />
+        </linearGradient>
         <filter id={`bm-glow-${side}`} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.6" result="b" />
+          <feGaussianBlur stdDeviation="1.4" result="b" />
           <feMerge>
             <feMergeNode in="b" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
       </defs>
-      <Silhouette />
+      {/* Körper */}
+      <g fill={`url(#bm-skin-${side})`}>
+        <ellipse cx="60" cy="17" rx="9.5" ry="12" />
+                <path d={body} />
+        <path d={body} transform={mir} />
+      </g>
+            {/* Muskeln */}
       {regions.map((r, i) => {
         const gr = byG.get(r.g)
         const t = gr?.tier ?? UNRANKED
+        const none = t.key === UNRANKED.key
         const hi = tierIndex(t) >= 4
         const dim = selected && selected !== r.g
         const props = {
-          fill: t.color,
-          stroke: '#0a0a0a',
-          strokeWidth: 0.7,
-          opacity: dim ? 0.3 : 0.95,
+          fill: none ? '#6c7782' : t.color,
+          stroke: '#20242a',
+          strokeWidth: 0.6,
+          strokeLinejoin: 'round' as const,
+          opacity: dim ? 0.28 : 1,
           filter: hi && !dim ? `url(#bm-glow-${side})` : undefined,
           style: { cursor: onSelect ? 'pointer' : undefined, transition: 'opacity .25s' },
           onClick: () => onSelect?.(r.g),
         }
         return (
           <g key={i} {...props}>
-            {r.el}
-            <g transform={mir}>{r.el}</g>
+            <path d={r.d} />
+            {!r.whole && <path d={r.d} transform={mir} />}
           </g>
         )
       })}
@@ -197,9 +219,9 @@ export function RankCard() {
 
       <div className="grid grid-cols-2 gap-2 px-4 pt-4">
         {(['front', 'back'] as const).map((s) => (
-          <div key={s} className="relative h-64 md:h-80">
+          <div key={s} className="relative h-72 pb-5 md:h-96">
             <BodyMap groups={r.groups} side={s} selected={sel} onSelect={(g) => setSel((x) => (x === g ? null : g))} />
-            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-widest text-white/30">{s === 'front' ? 'Vorne' : 'Hinten'}</span>
+            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-widest text-white/30">{s === 'front' ? 'Vorne' : 'Hinten'}</span>
           </div>
         ))}
       </div>
