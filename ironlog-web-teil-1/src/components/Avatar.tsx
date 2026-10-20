@@ -565,10 +565,44 @@ export function AvatarCard() {
 
 /* ── Avatar erstellen nach dem ersten Login ── */
 
+/** Eigenen Avatar-Stand für Buddys veröffentlichen (nur wenn er sich geändert hat) */
+function usePublishAvatarStats(a: ReturnType<typeof computeAvatar>, ready: boolean) {
+  const { user } = useData()
+  const payload = useMemo(
+    () => JSON.stringify({ level: a.level, title: a.title, total: a.total, sizes: Object.fromEntries(Object.entries(a.sizes).map(([k, v]) => [k, Math.round(v * 100) / 100])) }),
+    [a],
+  )
+  useEffect(() => {
+    if (!supabase || !user || !ready) return
+    const key = `ironlog.avatar.pub.${user.id}`
+    try {
+      if (localStorage.getItem(key) === payload) return
+    } catch {
+      /* noop */
+    }
+    const t = setTimeout(() => {
+      supabase!
+        .from('profiles')
+        .update({ avatar_stats: JSON.parse(payload) })
+        .eq('id', user.id)
+        .then(({ error }) => {
+          if (!error)
+            try {
+              localStorage.setItem(key, payload)
+            } catch {
+              /* noop */
+            }
+        })
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [payload, user, ready])
+}
+
 export function AvatarOnboarding() {
   const a = useAvatar()
   const { save, state } = useLook()
-  const { user } = useData()
+  const { user, loading, ready, loadError } = useData()
+  usePublishAvatarStats(a, state === 'set' && ready && !loading && !loadError)
   const skipKey = `ironlog.avatar.skip.${user?.id ?? 'anon'}`
   const [draft, setDraft] = useState<Look>(DEFAULT_LOOK)
   const [skipped, setSkipped] = useState(() => {
@@ -676,5 +710,70 @@ export function AvatarProgress({ workoutId }: { workoutId: string }) {
         {d.after.toNext > 0 ? `Noch ${d.after.toNext} ${d.after.toNext === 1 ? 'Training' : 'Trainings'} bis Level ${d.after.level + 1}` : 'Max-Level erreicht 👑'}
       </p>
     </motion.div>
+  )
+}
+
+/* ── Avatar-Duell mit einem Buddy ── */
+
+export function AvatarDuel({ myName, buddyName, buddyLook, buddyStats, lead }: {
+  myName: string
+  buddyName: string
+  buddyLook?: Record<string, unknown> | null
+  buddyStats?: { level: number; title: string; total: number; sizes: Record<string, number> } | null
+  /** 1 = ich führe diese Woche, -1 = Buddy führt, 0 = Gleichstand */
+  lead: number
+}) {
+  const me = useAvatar()
+  const { look } = useLook()
+  const zero = Object.fromEntries(Object.keys(me.sizes).map((k) => [k, 0])) as Sizes
+  const theirSizes = buddyStats ? ({ ...zero, ...buddyStats.sizes } as Sizes) : zero
+  const theirLook: Look = { ...DEFAULT_LOOK, ...(buddyLook as Partial<Look> | null) }
+  const side = (who: 'me' | 'them') => {
+    const win = who === 'me' ? lead > 0 : lead < 0
+    const lose = who === 'me' ? lead < 0 : lead > 0
+    return { win, lose }
+  }
+  const Fig = ({ who }: { who: 'me' | 'them' }) => {
+    const { win, lose } = side(who)
+    const name = who === 'me' ? myName : buddyName
+    const lvl = who === 'me' ? me.level : buddyStats?.level
+    const title = who === 'me' ? me.title : buddyStats?.title
+    return (
+      <motion.div
+        animate={{ scale: win ? 1.06 : lose ? 0.92 : 1, opacity: lose ? 0.55 : 1, y: win ? -4 : 0 }}
+        transition={{ type: 'spring', stiffness: 120, damping: 14 }}
+        className={cn('relative flex flex-1 flex-col items-center', lose && 'grayscale-[60%]')}
+      >
+        {win && <div className="absolute -top-1 z-10 rounded-full bg-lime px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-ink-900">👑 führt</div>}
+        {lose && <div className="absolute -top-1 z-10 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white/60">😮‍💨 müde</div>}
+        <div className={cn('relative h-36 w-full', win && 'drop-shadow-[0_0_18px_rgba(198,255,0,0.35)]')}>
+          {who === 'them' && !buddyStats ? (
+            <div className="grid h-full place-items-center text-center text-xs text-white/40">
+              noch kein
+              <br />
+              Avatar
+            </div>
+          ) : (
+            <AvatarFigure sizes={who === 'me' ? me.sizes : theirSizes} look={who === 'me' ? look : theirLook} className="h-full w-full" />
+          )}
+        </div>
+        <div className="mt-1 max-w-full truncate text-sm font-semibold">{name}</div>
+        <div className="text-[11px] font-bold uppercase tracking-wide text-lime/90">{lvl ? `Level ${lvl}` : '–'}</div>
+        {title && <div className="text-[11px] text-white/45">{title}</div>}
+      </motion.div>
+    )
+  }
+  return (
+    <div className="border-t border-white/[0.06] px-4 pb-4 pt-5" data-testid="avatar-duel">
+      <div className="label mb-2 flex items-center gap-1.5 !text-lime/90">
+        <Sparkles size={12} /> Avatar-Duell
+      </div>
+      <div className="flex items-end gap-2">
+        <Fig who="me" />
+        <div className="mb-16 font-display text-2xl text-white/30">VS</div>
+        <Fig who="them" />
+      </div>
+      <p className="mt-2 text-center text-xs text-white/45">Wer diese Woche führt, steht vorne. Jedes Training zählt.</p>
+    </div>
   )
 }

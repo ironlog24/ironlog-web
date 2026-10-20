@@ -14,7 +14,7 @@ Sprache mit dem Nutzer: **Deutsch**, einfache Schritt-für-Schritt-Anleitungen (
 - Backend: **Supabase** (Projekt `jjxwcmemkwchbdwszifo`, Region Frankfurt). Auth E-Mail/Passwort, alle Tabellen mit RLS `user_id = auth.uid()`.
   - Env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key, darf öffentlich sein).
   - Ohne Env-Variablen läuft die App im **Demo-Modus** (localStorage, Login ohne Prüfung).
-  - Migrationen: `ironlog-web-teil-1/supabase/migrations/0001…0006`. Der Nutzer führt neue SQL-Dateien selbst im Supabase SQL Editor aus → immer idempotent schreiben (`if not exists`, `drop policy if exists`) und am Ende `notify pgrst, 'reload schema';`. Neue Tabellen brauchen explizite `grant`s für `authenticated`.
+  - Migrationen: `ironlog-web-teil-1/supabase/migrations/0001…0007`. Der Nutzer führt neue SQL-Dateien selbst im Supabase SQL Editor aus → immer idempotent schreiben (`if not exists`, `drop policy if exists`) und am Ende `notify pgrst, 'reload schema';`. Neue Tabellen brauchen explizite `grant`s für `authenticated`.
 - Build-Modi: `npm run build` (normal, PWA). `vite build --mode artifact` erzeugt eine Single-File-HTML (MemoryRouter, ohne Service Worker).
 
 ## Deployment (wichtig)
@@ -40,6 +40,7 @@ Sprache mit dem Nutzer: **Deutsch**, einfache Schritt-für-Schritt-Anleitungen (
   - **Avatar-Fortschrittskarte im Recap** (`AvatarProgress` in `Recap.tsx`).
   - Migration `0006_avatar.sql` (Spalte `profiles.avatar`).
 - **Neue Übungsfotos** mit wenig Grün (`src/assets/exercises`, gleiche Dateinamen).
+- **Gym-Ränge** (`src/lib/ranks.ts`, `src/components/Ranks.tsx`): 9 Ränge Rost–Legende je Muskelgruppe nach e1RM/Körpergewicht, Körperkarte vorne/hinten auf Fortschritt, Rang-Aufstieg im Recap. Avatar-Duell auf der Buddy-Seite (Migration 0007).
 
 ## Ideen / offene Punkte
 - Buddys Version 2: Anstupsen per Push, Monats-Recap im „Wrapped“-Stil, animierte Karten, WhatsApp-Linkvorschau.

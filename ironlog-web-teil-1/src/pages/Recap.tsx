@@ -17,6 +17,7 @@ import { inviteUrl } from '@/data/social'
 import { siteUrl } from '@/data/api'
 import { ShareCardDialog } from '@/components/ShareCardDialog'
 import { AvatarProgress } from '@/components/Avatar'
+import { RankUps } from '@/components/Ranks'
 import type { CardSpec } from '@/lib/shareCards'
 
 export default function Recap() {
@@ -204,6 +205,7 @@ export default function Recap() {
           </div>
         </motion.div>
 
+        <RankUps workoutId={w.id} />
         <AvatarProgress workoutId={w.id} />
 
         <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">

@@ -10,6 +10,7 @@ import { Img } from '@/components/Img'
 import { AutoSize, Safe } from '@/components/Safe'
 import { ChartTip } from './Dashboard'
 import { BodyWeightCard } from '@/components/BodyWeightCard'
+import { RankCard } from '@/components/Ranks'
 import { HERO } from '@/lib/images'
 import { fmtDate, nf } from '@/lib/utils'
 import { bestByExercise, muscleDistribution, prEvents, weeklyVolume } from '@/data/stats'
@@ -44,6 +45,7 @@ export default function Progress() {
     <Page>
       <PageHero image={HERO.progress} kicker={`${prCount} PRs insgesamt`} title={<>Fort&shy;schritt</>} />
       <Container className="mt-6 space-y-10">
+        <RankCard />
         <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
           {/* Wochenvolumen */}
           <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card p-5">

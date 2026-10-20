@@ -17,6 +17,7 @@ import {
   type Buddy, type ChallengeKind, type Summary,
 } from '@/data/social'
 import type { CardSpec } from '@/lib/shareCards'
+import { AvatarDuel } from '@/components/Avatar'
 
 /* ── Helfer ── */
 
@@ -290,6 +291,8 @@ function DuelCard({ buddy, myName, onCard, link }: { buddy: Buddy; myName: strin
           {d.now.lead > 0 ? '💪 Du führst – dranbleiben!' : d.now.lead < 0 ? `😤 ${first} führt – Zeit fürs Gym.` : 'Gleichstand – wer legt vor?'}
         </p>
       </div>
+
+      <AvatarDuel myName={myName} buddyName={first} buddyLook={buddy.avatar} buddyStats={buddy.avatarStats} lead={d.now.lead} />
 
       {/* Letzte Woche + Streak */}
       {(lastPlayed || milestone) && (

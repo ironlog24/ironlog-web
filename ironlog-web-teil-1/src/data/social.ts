@@ -5,13 +5,33 @@ import { startOfWeek } from '@/lib/utils'
 
 /* ════════════════════ Typen ════════════════════ */
 
+function demoAvatar(n: number): Pick<Buddy, 'avatar' | 'avatarStats'> {
+  const lv = n ? 3 : 4
+  const g = n ? 0.38 : 0.48
+  return {
+    avatar: n ? { body: 'm', skin: 1, hair: 'kurz', hairColor: 3, beard: false, build: 'schlank' } : { body: 'm', skin: 3, hair: 'buzz', hairColor: 0, beard: true, build: 'sportlich' },
+    avatarStats: { level: lv, title: n ? 'Regelmäßig' : 'Eisenfresser', total: n ? 10 : 18, sizes: { brust: g * 1.2, ruecken: g, schultern: g, arme: g * 1.3, beine: g * 0.7, core: g * 0.8 } },
+  }
+}
+
 export type ShareLevel = 'basic' | 'stats'
+
+/** Avatar-Stand, den jeder Nutzer für seine Buddys veröffentlicht */
+export interface AvatarStats {
+  level: number
+  title: string
+  total: number
+  sizes: Record<string, number>
+}
 
 export interface Buddy {
   id: string
   name: string
   shareLevel: ShareLevel
   since: string
+  /** Aussehen (Look) – null, wenn der Buddy noch keinen Avatar erstellt hat */
+  avatar?: Record<string, unknown> | null
+  avatarStats?: AvatarStats | null
 }
 
 export interface Summary {
@@ -82,8 +102,8 @@ function supabaseSocial(): SocialStore {
       return { id: row.id, name: row.display_name }
     },
     async buddies() {
-      const rows = ok(await sb.rpc('my_buddies')) as { id: string; display_name: string; share_level: ShareLevel; since: string }[]
-      return (rows ?? []).map((r) => ({ id: r.id, name: r.display_name, shareLevel: r.share_level, since: r.since }))
+      const rows = ok(await sb.rpc('my_buddies')) as { id: string; display_name: string; share_level: ShareLevel; since: string; avatar?: Record<string, unknown> | null; avatar_stats?: AvatarStats | null }[]
+      return (rows ?? []).map((r) => ({ id: r.id, name: r.display_name, shareLevel: r.share_level, since: r.since, avatar: r.avatar ?? null, avatarStats: r.avatar_stats ?? null }))
     },
     async removeBuddy(id) {
       const me = await uid()
@@ -186,7 +206,7 @@ function demoSocial(): SocialStore {
       if (c === 'IRON-DEMO1') throw new Error('Das ist dein eigener Code 😄')
       const db = load()
       const n = db.buddies.length
-      const b: Buddy = { id: `demo-buddy-${n + 1}`, name: n ? `Max (Demo ${n + 1})` : 'Ali (Demo)', shareLevel: 'stats', since: new Date().toISOString() }
+      const b: Buddy = { id: `demo-buddy-${n + 1}`, name: n ? `Max (Demo ${n + 1})` : 'Ali (Demo)', shareLevel: 'stats', since: new Date().toISOString(), ...demoAvatar(n) }
       db.buddies.push(b)
       // Ali hat dir schon mal Respekt gegeben
       const myLast = [...db.mine].sort((a, z) => z.started_at.localeCompare(a.started_at))[0]
@@ -195,7 +215,7 @@ function demoSocial(): SocialStore {
       return { id: b.id, name: b.name }
     },
     async buddies() {
-      return load().buddies
+      return load().buddies.map((b, i) => (b.avatarStats ? b : { ...b, ...demoAvatar(i) }))
     },
     async removeBuddy(id) {
       const db = load()
